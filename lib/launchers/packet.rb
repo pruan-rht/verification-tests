@@ -54,7 +54,7 @@ module BushSlicer
           content_type = res[:headers]['content-type'][0]
           case
           when content_type.include?('json')
-            res[:parsed] = JSON.load(res[:response])
+            res[:parsed] = YAML.load(res[:response])
           when content_type.include?('yaml')
             res[:parsed] = YAML.load(res[:response])
           end
