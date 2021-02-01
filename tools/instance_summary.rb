@@ -17,9 +17,9 @@ module BushSlicer
     ## print out summary in a text table format
     def print_summary(summary)
       table = Text::Table.new
-      table.head = ['name', 'uptime', 'flexy_job_id', 'region']
+      table.head = ['name', 'uptime', 'flexy_job_id', 'region', 'inst_prefix']
       summary.each do | s |
-        row = [s[:name], s[:uptime], s[:flexy_job_id], s[:region]]
+        row = [s[:name], s[:uptime], s[:flexy_job_id], s[:region], s[:inst_prefix]]
         table.rows << row
       end
       puts table
@@ -37,6 +37,79 @@ module BushSlicer
       end
       table.foot = ["Total instances", "", total]
       puts table
+    end
+
+    def print_condensed_usage(usage: nil, options: nil)
+      user_map = @jenkins.build_user_map
+      res_list = []
+      usage.each do | k, v |
+        res_list << [k, v[:job_id], v[:uptime].round(2), user_map[v[:job_id]]]
+      end
+      table = Text::Table.new
+      table.head = ['name', 'job_id', 'uptime', 'user']
+      res_list.each do |r|
+        table.rows << [r[0], r[1], r[2], r[3]]
+      end
+      if table.rows.count > 0
+        msg = "\nThese '#{options.platform}' clusters have been alive longer than #{options.uptime} hrs.  Did you forget to remove them??\n"
+        print msg
+        puts table
+        send_to_slack(msg + table.to_s) unless options.no_slack
+      end
+    end
+
+
+    # given a summary list of clusters, compact the return by grouping the
+    # resources under the same cluster as one.
+    def compact_results(res)
+      c_hash = {}
+      not_found_list = []
+      not_found_keys = []
+
+      res.each do |r|
+        unless c_hash.has_key? r[:inst_prefix]
+          if r[:flexy_job_id] == 'not found'
+            # print all
+            ### try to group them into one summary
+            unless not_found_keys.include? r[:name][0..10]
+              not_found_keys << r[:name][0..10]
+            else
+              index = not_found_keys.select {|k| r[:name].start_with? k}.first
+              r[:inst_prefix] = index if index
+              c_hash[r[:inst_prefix]] = {'job_id': 'not found', 'uptime': r[:uptime] }
+            end
+          else
+            # group them together
+            c_hash[r[:inst_prefix]] = {'job_id': r[:flexy_job_id], 'uptime': r[:uptime]}
+          end
+        end
+      end
+      return c_hash
+    end
+
+    def print_longlived_clusters(summary, options)
+      options.uptime ||= 18
+      res = get_longlived_clusters(summary, options)
+      res = compact_results(res)
+      print_condensed_usage(usage: res, options: options)
+    end
+
+    def get_longlived_clusters(summary, options)
+      summary.select { |s| (s[:uptime] > options.uptime.to_i) and !(s[:name].include? 'preserve')}
+    end
+
+
+
+    # call Slack webhook to send text to a particular channel.
+    # curl -X POST -H \'Content-type: application/json\' --data \'$curl_data\' https://hooks.slack.com/services/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
+    ## TODO: research doing it via ruby-slack-client instead
+    def send_to_slack(summary_text)
+      # url = "https://hooks.slack.com/services/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"
+      # debugging sandbox url below
+      url = "https://hooks.slack.com/services/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"
+      opts = {:url => url, :method => "POST"}
+      opts[:payload] = %Q/{"blocks": [{"type": "section","text": {"type":"mrkdwn","text": "```#{summary_text}```"}}]}/
+      res = Http.request(**opts)
     end
   end
 
@@ -82,9 +155,9 @@ module BushSlicer
           inst_summary[:uptime]= amz.instance_uptime inst
           inst_summary[:owned] = amz.instance_owned inst
           if inst_summary[:owned]
-            inst_summary[:flexy_job_id] = jenkins.get_jenkins_flexy_job_id(inst_summary[:owned][0..-7])
+            inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = jenkins.get_jenkins_flexy_job_id(inst_summary[:owned])
           else
-            inst_summary[:flexy_job_id] = nil
+            inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = nil, nil
           end
           summary << inst_summary
         end
@@ -92,7 +165,7 @@ module BushSlicer
       return summary
     end
 
-    def get_summary(target_region: nil)
+    def get_summary(target_region: nil, options: nil)
       regions = amz.get_regions
       region_names =  regions.map {|r| r.region_name }
       aws_instances = {}
@@ -115,6 +188,8 @@ module BushSlicer
         # print "Getting summary for region '#{region}'\n"
         summary = summarize_instances(region, inst_list)
         print_summary(summary) if inst_list.count > 0
+        options.platform = "AWS #{region}"
+        print_longlived_clusters(summary, options) if inst_list.count > 0
         grand_summary << {platform: 'aws', region: region, inst_count: inst_list.count}
       end
       print_grand_summary(grand_summary)
@@ -155,15 +230,14 @@ module BushSlicer
       cm.each do | network, inst_list |
         inst_list.each do | inst |
           inst_summary = {}
-          # inst_summary[:inst_obj] = inst
           inst_summary[:region] = region
           inst_summary[:name]= inst.name
           inst_summary[:uptime]= gce.instance_uptime inst
-          inst_summary[:owned] = network
+          inst_summary[:owned] = inst.name
           if inst_summary[:owned]
-            inst_summary[:flexy_job_id] = jenkins.get_jenkins_flexy_job_id(inst_summary[:owned][0..-9])
+            inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = jenkins.get_jenkins_flexy_job_id(inst_summary[:owned])
           else
-            inst_summary[:flexy_job_id] = nil
+            inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = nil, nil
           end
           summary << inst_summary
         end
@@ -171,7 +245,7 @@ module BushSlicer
       return summary
     end
 
-    def get_summary(target_region: nil)
+    def get_summary(target_region: nil, options: nil)
       regions = gce.regions
       gce_instances = {}
       grand_summary = []
@@ -205,6 +279,8 @@ module BushSlicer
           summary = summarize_instances(region, gce_instances[region])
           print_summary(summary) if summary.count > 0
           grand_summary << {platform: 'gce', region: region, inst_count: summary.count}
+          options.platform = "GCE"
+          print_longlived_clusters(summary, options) if summary.count > 0
         end
       end
       print_grand_summary(grand_summary)
@@ -229,9 +305,9 @@ module BushSlicer
           inst_summary[:uptime]= inst[:uptime]
           inst_summary[:owned] = rg_name.downcase
           if inst_summary[:owned]
-            inst_summary[:flexy_job_id] = jenkins.get_jenkins_flexy_job_id(inst_summary[:owned][0..-10])
+            inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = jenkins.get_jenkins_flexy_job_id(inst_summary[:owned])
           else
-            inst_summary[:flexy_job_id] = nil
+            inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = nil, nil
           end
           summary << inst_summary
         end
@@ -239,13 +315,15 @@ module BushSlicer
       return summary
     end
 
-    def get_summary
+    def get_summary(options: nil)
       grand_summary = []
       # default status is 'PowerState/Running'
       # cluster_map keyed off by resource_group_name
       cm = azure.get_running_instances
       summary = summarize_instances(cm)
       print_summary(summary) if summary.count > 0
+      options.platform = "Azure"
+      print_longlived_clusters(summary, options) if summary.count > 0
       grand_summary << {platform: 'azure', region: summary.first[:region], inst_count: summary.count}
       print_grand_summary(grand_summary)
     end
@@ -266,23 +344,25 @@ module BushSlicer
       sorted_instances = instances.sort_by {|k, v| k}.to_h
       sorted_instances.each do |name, inst|
         inst_summary = {}
-        inst_summary[:region] = 'upshift'
+        inst_summary[:region] = 'openstack'
         inst_summary[:name]= name
         inst_summary[:uptime]= os.instance_uptime inst["created"]
         inst_summary[:owned] =  name
-        inst_summary[:flexy_job_id] = jenkins.get_jenkins_flexy_job_id(name[0..13])
+        inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = jenkins.get_jenkins_flexy_job_id(name)
         summary << inst_summary
       end
       return summary
     end
 
-    def get_summary
+    def get_summary(options: nil)
       grand_summary = []
       inst_details = os.get_running_instances
       # sleep 15
       summary = summarize_instances(inst_details)
         # summary = summarize_instances(rg_name, instances)
       print_summary(summary) if summary.count > 0
+      options.platform = "Openstack"
+      print_longlived_clusters(summary, options) if summary.count > 0
       grand_summary << {platform: 'openstack', region: summary.first[:region], inst_count: summary.count}
       print_grand_summary(grand_summary)
     end
@@ -305,19 +385,20 @@ module BushSlicer
         inst_summary[:name]= inst['hostname']
         inst_summary[:uptime]= packet.instance_uptime inst["created_at"]
         inst_summary[:owned] = inst['created_by']['email']
-        inst_summary[:flexy_job_id] = jenkins.get_jenkins_flexy_job_id(inst['hostname'])
+        inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = jenkins.get_jenkins_flexy_job_id(inst['hostname'])
         summary << inst_summary
       end
       return summary
     end
 
-    def get_summary
+    def get_summary(options: nil)
       grand_summary = []
       inst_details = packet.get_running_instances
       summary = summarize_instances(inst_details)
-      # summary = summarize_instances(rg_name, instances)
       print_summary(summary) if summary.count > 0
-      grand_summary << {platform: 'openstack', region: summary.first[:region], inst_count: summary.count}
+      options.platform = "Packet"
+      print_longlived_clusters(summary, options) if summary.count > 0
+      grand_summary << {platform: 'Packet', region: summary.first[:region], inst_count: summary.count}
       print_grand_summary(grand_summary)
     end
   end
@@ -339,18 +420,19 @@ module BushSlicer
         inst_summary[:region] = 'vSphere'
         inst_summary[:name]= inst['name']
         inst_summary[:uptime]= vms.instance_uptime(inst.config.createDate)
-        inst_summary[:flexy_job_id] = jenkins.get_jenkins_flexy_job_id(inst['name'])
+        inst_summary[:flexy_job_id], inst_summary[:inst_prefix] = jenkins.get_jenkins_flexy_job_id(inst['name'])
         summary << inst_summary
       end
       return summary
     end
 
-    def get_summary
+    def get_summary(options: nil)
       grand_summary = []
       inst_details = vms.get_running_instances
       summary = summarize_instances(inst_details)
-      # summary = summarize_instances(rg_name, instances)
       print_summary(summary) if summary.count > 0
+      options.platform = "VSphere"
+      print_longlived_clusters(summary, options) if summary.count > 0
       grand_summary << {platform: 'vSphere', region: summary.first[:region], inst_count: summary.count}
       print_grand_summary(grand_summary)
     end
