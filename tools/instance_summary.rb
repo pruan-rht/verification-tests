@@ -176,13 +176,19 @@ module BushSlicer
           raise "Unsupported region '#{target_region}'" unless region_names.include? target_region
           region.region_name = target_region
         end
-        threads << Thread.new(Amz_EC2.new(region: region.region_name)) do |aws|
-          instances = aws.get_instances_by_status('running')
-          aws_instances[region.region_name] = instances
-          break if target_region == region.region_name
-        end
+        aws = Amz_EC2.new(region: region.region_name)
+        instances = aws.get_instances_by_status('running')
+        binding.pry if instances.count > 0
+        aws_instances[region.region_name] = instances
+        ##  XXX commnet out thread implmentation for now as it's flaky when when in jenkins
+        # threads << Thread.new(Amz_EC2.new(region: region.region_name)) do |aws|
+        #   instances = aws.get_instances_by_status('running')
+        #   aws_instances[region.region_name] = instances
+        #   break if target_region == region.region_name
+        # end
       end
-      threads.each(&:join)
+      ##  XXX commnet out thread implmentation for now as it's flaky when when in jenkins
+      #threads.each(&:join)
       grand_summary = []
       aws_instances.each do |region, inst_list|
         # print "Getting summary for region '#{region}'\n"
