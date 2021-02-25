@@ -178,7 +178,6 @@ module BushSlicer
         end
         aws = Amz_EC2.new(region: region.region_name)
         instances = aws.get_instances_by_status('running')
-        binding.pry if instances.count > 0
         aws_instances[region.region_name] = instances
         ##  XXX commnet out thread implmentation for now as it's flaky when when in jenkins
         # threads << Thread.new(Amz_EC2.new(region: region.region_name)) do |aws|
