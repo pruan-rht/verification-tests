@@ -69,7 +69,8 @@ module BushSlicer
     #    in the inst_group_name
     #
     def get_jenkins_flexy_job_id(inst_group_name)
-      f_keys = bm_sorted_keys.select { |k| k.start_with? inst_group_name[0..6] }
+      f_keys = bm_sorted_keys.select { |k| k.start_with? inst_group_name.split('-').first }
+      #f_keys = bm_sorted_keys.select { |k| k.start_with? inst_group_name[0..6] }
       index = f_keys.select { |k| inst_group_name.start_with? k}.first
 
       if index
