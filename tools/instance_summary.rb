@@ -138,7 +138,9 @@ module BushSlicer
         # tag the users of the long-lived clusters
         # for Packet platform, we ignore host that ends with  'aux'
         if self.class == BushSlicer::PacketSummary
-          filtered_list = res_list.select {|r| r[4] unless r[0].end_with? '-aux'}
+          # ignore these clusters with prefix patterns
+          filtered_list = res_list.select {|r| r[4] unless (r[0].end_with? '-aux' or r[0].starts_with? 'ny-mirro')}
+          #filtered_list = res_list.select {|r| r[4] unless r[0].end_with? '-aux'}
           users = filtered_list
         # Special case for vSphere where `Workload` user is not real, so just
         # ignore it
