@@ -9,7 +9,7 @@ require 'common'
 require 'cgi'
 
 require "ibm_vpc"
-require 'pry-byebug'
+
 
 module BushSlicer
   class IBMCloud
@@ -24,7 +24,11 @@ module BushSlicer
         apikey: @config[:auth][:apikey]
       )
       @vpc = IbmVpc::VpcV1.new(authenticator: authenticator)
-
+      @regions ||= vpc.list_regions.result['regions']
+      if opts[:region]
+        puts("Setting region to #{opts[:region]}...\n")
+        region=(opts[:region])
+      end
     end
 
     # @return Array of region hash
@@ -34,15 +38,20 @@ module BushSlicer
     end
 
     # @return Hash containing region information
-    def region(name)
+    def get_region(name)
       region_hash = self.regions.select {|r| r['name'] == name}.first
       raise "Unsupported region '#{name}" unless region_hash
       return region_hash
     end
 
-    def region=(reg_name)
-      region_info = self.region(reg_name)
+    def set_region(reg_name)
+      region_info = self.get_region(reg_name)
       self.vpc.service_url = region_info['endpoint'] + "/v1"
+    end
+    # @returns current region hash
+    def current_region
+      self.vpc.service_url
+      self.regions.select {|r| r['endpoint'].start_with? self.vpc.service_url[0..-4]}.first
     end
 
     def instances
@@ -59,171 +68,26 @@ module BushSlicer
       end
       return instances
     end
-    # ibm.regions.select {|r| r['name'] == 'us-south'}.first
-    # class Instance
-    #   include Common::BaseHelper
 
-    #   attr_reader :connection, :id, :region
+    def get_instances_by_status(status: 'running', region: nil)
+      instances = self.instances
+      if instances.count > 0
+        insts = instances.select {|i| i['status'] == status }
+        instances = insts
+      end
+      return instances
+    end
 
-    #   # @param spec [Hash] provide at least "InstanceId" and "RegionId" keys
-    #   def initialize(spec, connection)
-    #     @connection = connection
-    #     @id = spec["InstanceId"].freeze
-    #     @region = spec["RegionId"].freeze
-    #     update spec
-    #   end
+    def instance_uptime(instance)
+      ((Time.now.utc - Time.parse(instance['created_at'])) / (60 * 60)).round(2)
+    end
 
-    #   def update(spec)
-    #     if id == spec["InstanceId"] || region == spec["RegionId"]
-    #       @spec = spec
-    #     else
-    #       raise "trying to update instance with wrong spec: #{id}/#{region}" \
-    #         "vs #{spec["InstanceId"]}/#{spec["RegionId"]}"
-    #     end
-    #   end
-
-    #   private def known_region?
-    #     @spec&.dig()
-    #   end
-
-    #   def spec(cached: true)
-    #     unless cached && @spec
-    #       res = connection.request(
-    #         action: "DescribeInstances",
-    #         params: {
-    #           "InstanceIds" => [id].to_json,
-    #           "RegionId" => region
-    #         }
-    #       )
-    #       @spec = res[:parsed]["Instances"]["Instance"].first
-    #       unless @spec
-    #         raise ResourceNotFound, "no instnaces with id #{id} found"
-    #       end
-    #     end
-    #     return @spec
-    #   end
-
-    #   def exists?
-    #     status(cached: false) != "Deleted"
-    #   end
-
-    #   def status(cached: true)
-    #     spec(cached: cached)["Status"]
-    #   rescue ResourceNotFound
-    #     "Deleted"
-    #   end
-
-    #   # @return [String]
-    #   def public_ip(cached: true)
-    #     public_ips(cached: cached)&.first
-    #   end
-
-    #   def public_ips(cached: true)
-    #     spec(cached: cached).dig("PublicIpAddress", "IpAddress")
-    #   end
-
-    #   def private_ip(cached: true)
-    #     private_ips(cached: cached)&.first
-    #   end
-
-    #   def private_ips(cached: true)
-    #     if !spec(cached: cached).dig("InnerIpAddress", "IpAddress").empty?
-    #       spec(cached: true).dig("InnerIpAddress", "IpAddress")
-    #     else
-    #       spec(cached: true).dig("VpcAttributes", "PrivateIpAddress", "IpAddress")
-    #     end
-    #   end
-
-    #   def name(cached: true)
-    #     spec(cached: cached)["InstanceName"]
-    #   end
-
-    #   # @param wait [Boolean, Numeric] seconds to wait for instance to stop
-    #   # @param graceful [Boolean] when true method will not raise when instance
-    #   #   is missing or is already stopped/stopping
-    #   def stop!(graceful: true, force: false, wait: true)
-    #     params = {
-    #       "InstanceId" => id,
-    #       "ForceStop" => !!force.to_s,
-    #       "ConfirmStop" => !!force.to_s
-    #     }
-    #     res = connection.request(
-    #       action: "StopInstance",
-    #       params: params,
-    #       noraise: graceful,
-    #     )
-
-    #     unless res[:success]
-    #       # if we are here then graceful is true
-    #       if res[:exitstatus] == 404 || res[:exitstatus] == 403 && res[:parsed]["Code"] == "IncorrectInstanceStatus"
-    #         return nil
-    #       else
-    #         raise RequestError, "Failed to stop instance #{instance_id}: " \
-    #           "#{res[:response]}"
-    #       end
-    #     end
-
-    #     if wait
-    #       timeout = Numeric === wait ? wait : 60
-    #       success = wait_for(timeout, interval: 5) {
-    #         status(cached: false) == "Stopped"
-    #       }
-    #       unless success
-    #         raise BushSlicer::TimeoutError,
-    #           "Timeout waiting for instance #{id} to stop. Status: #{status}"
-    #       end
-    #       return nil
-    #     else
-    #       return res[:parsed]["RequestId"]
-    #     end
-    #   end
-
-    #   # @see #stop!
-    #   # @see https://www.alibabacloud.com/help/doc-detail/25507.htm
-    #   def delete!(graceful: true, wait: true)
-    #     res = connection.request(
-    #       action: "DeleteInstance",
-    #       params: {"InstanceId" => id},
-    #       noraise: graceful,
-    #     )
-
-    #     unless res[:success]
-    #       # if we are here then graceful is true
-    #       if res[:exitstatus] == 404
-    #         return nil
-    #       elsif res[:exitstatus] == 403 && res[:parsed]["Code"].include?("Status")
-    #         stop!(force: true, graceful: true, wait: true)
-    #         return delete!(graceful: false, wait: wait)
-    #       else
-    #         raise RequestError, "Failed to delete instance #{instance_id}: " \
-    #           "#{res[:response]}"
-    #       end
-    #     end
-
-    #     if wait
-    #       timeout = Numeric === wait ? wait : 60
-    #       success = wait_for(timeout, interval: 5) {
-    #         status(cached: false) == "Deleted"
-    #       }
-    #       unless success
-    #         raise BushSlicer::TimeoutError,
-    #           "Timeout waiting to delete instance #{id}. Status: #{status}"
-    #       end
-    #       return nil
-    #     else
-    #       return res[:parsed]["RequestId"]
-    #     end
-    #   end
-    # end
   end
 end
 
 if __FILE__ == $0
   extend BushSlicer::Common::Helper
-  ibm = BushSlicer::IBMCloud.new
+  ibm = BushSlicer::IBMCloud.new(region: 'eu-gb')
   insts2 = ibm.instances
-  binding.pry
   print inst2
-
 end
-
