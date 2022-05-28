@@ -14,6 +14,11 @@ module BushSlicer
       @token = conf.dig('services', 'slack', 'apps').dig(app_name, :token)
       @usergroup_id = conf.dig('services', 'slack', 'usergroup_id')
       @channel = channel
+      ### some user's slack IDs don't match their RHT email ID.  To make it
+      # simple, just make a list of known users_id that don't have the correct
+      # mapping and just merge it with the automated ones
+      # this Hash contains mapping of JIRA/polarion component to Slack usergroup id
+      @slack_users_hardcoded = YAML.load(open('creds/slack_hardcoded_users.yaml'))
 
       Slack.configure do |config|
         config.token = @token
@@ -30,22 +35,47 @@ module BushSlicer
     end
 
     # @return Hash <username -> SLACK_USER_ID>
-    def build_user_map
-      # first get all users in the openshift-qe slack group
-      ocp_qe_users = @client.usergroups_users_list(usergroup: @usergroup_id)
-      # now query each USERID to get the corresponding user alias
-      users_ids = ocp_qe_users['users']
-      threads = []
-      slack_users = {}
-      users_ids.each do |user_id|
-        threads << Thread.new {
-          name = client.users_info(user: user_id)['user'].name
-          slack_users[name] = user_id
-        }
+    def build_user_map(rebuild: false)
+      if rebuild
+        # first get all users in the openshift-qe slack group
+        ocp_qe_users = @client.usergroups_users_list(usergroup: @usergroup_id)
+        # now query each USERID to get the corresponding user alias
+        users_ids = ocp_qe_users['users']
+
+        threads = []
+        slack_users = {}
+        users_ids.each do |user_id|
+          threads << Thread.new {
+            name = client.users_info(user: user_id)['user'].name
+            slack_users[name] = user_id
+          }
+        end
+        threads.each(&:join)
+      else
+        # save request by just loading a predefined user lookup table
+        slack_users = YAML.load(open('creds/slack_users_map.yaml'))
       end
-      threads.each(&:join)
-      slack_users
+      slack_users.merge!(@slack_users_hardcoded)
+      @users_map = slack_users
     end
+
+    # # @return Hash <username -> SLACK_USER_ID>
+    # def build_user_map
+    #   # first get all users in the openshift-qe slack group
+    #   ocp_qe_users = @client.usergroups_users_list(usergroup: @usergroup_id)
+    #   # now query each USERID to get the corresponding user alias
+    #   users_ids = ocp_qe_users['users']
+    #   threads = []
+    #   slack_users = {}
+    #   users_ids.each do |user_id|
+    #     threads << Thread.new {
+    #       name = client.users_info(user: user_id)['user'].name
+    #       slack_users[name] = user_id
+    #     }
+    #   end
+    #   threads.each(&:join)
+    #   slack_users
+    # end
 
     # given a list of long-lived cluster arrays, notify the user in Slack
     # clusters =  [[nil, nil, 29.71, nil],
