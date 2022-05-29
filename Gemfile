@@ -34,6 +34,8 @@ gem 'azure_mgmt_compute', '~>0.18.0'
 gem 'azure_mgmt_resources', '~>0.17.0'
 gem 'azure_mgmt_network', '~>0.17.0'
 
+###### IBM cloud
+gem 'ibm_vpc'
 # gem 'timers'
 ## Logging
 gem 'term-ansicolor'
@@ -52,6 +54,8 @@ gem 'pry'
 # https://github.com/deivid-rodriguez/pry-byebug/issues/71
 #gem 'pry-byebug', :require => false
 gem 'byebug'
+=======
+# gem 'pry-byebug', :require => false
 gem 'jira-ruby'
 ### XXX 0.1.7 is breaking things need to investigate further, patch this for now
 #gem 'configparser', '0.1.6'
