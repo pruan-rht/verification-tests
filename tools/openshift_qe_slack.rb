@@ -53,7 +53,7 @@ module BushSlicer
         threads.each(&:join)
       else
         # save request by just loading a predefined user lookup table
-        slack_users = YAML.load(open('creds/slack_users_map.yaml'))
+        slack_users = YAML.load(open(File.expand_path('creds/slack_users_map.yaml')))
       end
       slack_users.merge!(@slack_users_hardcoded)
       @users_map = slack_users
