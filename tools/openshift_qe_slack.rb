@@ -18,7 +18,7 @@ module BushSlicer
       # simple, just make a list of known users_id that don't have the correct
       # mapping and just merge it with the automated ones
       # this Hash contains mapping of JIRA/polarion component to Slack usergroup id
-      @slack_users_hardcoded = YAML.load(open('creds/slack_hardcoded_users.yaml'))
+      @slack_users_hardcoded = YAML.load(open(File.expand_path('creds/slack_users_map.yaml')))
 
       Slack.configure do |config|
         config.token = @token
