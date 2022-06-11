@@ -10,7 +10,7 @@ module BushSlicer
 
     attr_accessor :client, :usergroup_id, :token, :user_list, :users_map, :channel
 
-    def initialize(app_name: :cloud_usage_summary, channel: '#team-qe')
+    def initialize(app_name: :cloud_usage_summary, channel: '#ocp-qe-clusters')
       @token = conf.dig('services', 'slack', 'apps').dig(app_name, :token)
       @usergroup_id = conf.dig('services', 'slack', 'usergroup_id')
       @channel = channel
@@ -119,7 +119,7 @@ module BushSlicer
 end
 
 if __FILE__ == $0
-  # default to team-qe channel.
+  # default to ocp-qe-clusters channel.
   slack = BushSlicer::CoreosSlack.new
   # set the channel: parameter to direct to the channel where the message to be
   # posted
