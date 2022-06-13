@@ -10,7 +10,7 @@ module BushSlicer
 
     attr_accessor :client, :usergroup_id, :token, :user_list, :users_map, :channel
 
-    def initialize(app_name: :cloud_usage_summary, channel: '#ocp-qe-clusters')
+    def initialize(app_name: :cloud_usage_summary, channel: '#team-qe')
       @token = conf.dig('services', 'slack', 'apps').dig(app_name, :token)
       @usergroup_id = conf.dig('services', 'slack', 'usergroup_id')
       @channel = channel
