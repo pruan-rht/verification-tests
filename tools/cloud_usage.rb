@@ -94,7 +94,7 @@ module BushSlicer
           ps.get_summary(target_region: options.region, options: options)
         end
       end
-      
+
       command :"gce" do |c|
         c.syntax = "#{File.basename __FILE__} -r <gce_region_name> [--all]"
         c.description = 'display summary of running instances'
