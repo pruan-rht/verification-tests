@@ -10,6 +10,7 @@ require 'net'
 require 'rest'
 require 'openshift/node'
 require 'webauto/webconsole_executor'
+require 'pry-byebug'
 
 module BushSlicer
   # @note class represents a generic test environment
@@ -89,6 +90,7 @@ module BushSlicer
     end
 
     def user_manager
+      binding.pry
       @user_manager ||= case opts[:user_manager]
       when nil, "", "auto"
         case opts[:user_manager_users]
@@ -531,9 +533,10 @@ module BushSlicer
   class StaticEnvironment < OpenShiftEnvironment
     def initialize(**opts)
       super
-
-      if ! opts[:hosts] || opts[:hosts].empty?
-        raise "environment should have at least one host running all services"
+      unless opts[:key] == 'microshift'
+        if ! opts[:hosts] || opts[:hosts].empty?
+          raise "environment should have at least one host running all services"
+        end
       end
     end
 

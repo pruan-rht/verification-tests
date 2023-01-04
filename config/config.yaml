@@ -113,6 +113,13 @@ environments:
     type: OCMEnvironment
     static_users_map:
       exampleSymbolicUserName: "user1:password1"
+  microshift:
+    type: StaticEnvironment
+    admin_creds: URLKubeconfigCredentials
+    api_port: 6443
+    # user_manager: 'pool:'
+
+
 
 optional_classes:
   tcms_tc_manager:

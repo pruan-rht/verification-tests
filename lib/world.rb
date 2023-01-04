@@ -1,6 +1,7 @@
 require 'ostruct'
 require 'common'
 require 'collections'
+require 'pry-byebug'
 
 module BushSlicer
   # @note this is our default cucumber World extension implementation
@@ -129,6 +130,7 @@ module BushSlicer
     end
 
     def admin
+      binding.pry
       env.admin
     end
 

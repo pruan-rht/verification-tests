@@ -82,6 +82,7 @@ module BushSlicer
   class URLKubeconfigCredentials < AdminCredentials
     def get
       # export OPENSHIFT_ENV_OCP4_ADMIN_CREDS_SPEC=file:///~/.kube/config
+      binding.pry
       if opts[:spec].start_with? 'file:///'
         path = File.expand_path(opts[:spec].split("file://")[1])
         raise "kubeconfig does not exists" unless File.exists? File.expand_path(path)

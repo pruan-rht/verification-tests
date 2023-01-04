@@ -1,3 +1,5 @@
+require 'pry-byebug'
+
 Given /^there is no (\w+) in the#{OPT_QUOTED} project$/ do |resource, project_name|
   project_name = ' "' + project_name + '"' if project_name
   @result = user.cli_exec(:get, resource: resource, n: project_name)
@@ -7,7 +9,7 @@ end
 Given /^I have a project$/ do
   # system projects should not be selected by default
   sys_projects = BushSlicer::Project::SYSTEM_PROJECTS
-
+  binding.pry
   project = @projects.reverse.find {|p|
     !sys_projects.include?(p.name) &&
       p.is_user_admin?(user: user, cached: true) &&
