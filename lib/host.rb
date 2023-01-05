@@ -362,6 +362,8 @@ module BushSlicer
     #   begins optionally with flags between slash `/` characters, followed by
     #   hostname and separated by colon `:` roles
     def self.from_spec(spec, **env_opts)
+      require 'pry-byebug'
+      binding.pry
       hosts = spec.split(",").map do |host|
         flags = host.slice! %r{^/.*/}
         hostname, *roles = host.split(":")

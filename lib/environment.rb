@@ -90,7 +90,6 @@ module BushSlicer
     end
 
     def user_manager
-      binding.pry
       @user_manager ||= case opts[:user_manager]
       when nil, "", "auto"
         case opts[:user_manager_users]

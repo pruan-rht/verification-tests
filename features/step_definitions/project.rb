@@ -9,7 +9,6 @@ end
 Given /^I have a project$/ do
   # system projects should not be selected by default
   sys_projects = BushSlicer::Project::SYSTEM_PROJECTS
-  binding.pry
   project = @projects.reverse.find {|p|
     !sys_projects.include?(p.name) &&
       p.is_user_admin?(user: user, cached: true) &&
@@ -20,10 +19,14 @@ Given /^I have a project$/ do
     # also move project up the stack
     @projects << @projects.delete(project)
   else
-    projects = (user.projects - sys_projects).select {|p|
-      p.is_user_admin?(user: user, cached: true) &&
-      p.active?(user: user, cached: true)
-    }
+    unless user.class == BushSlicer::APIAccessor
+      projects = (user.projects - sys_projects).select {|p|
+        p.is_user_admin?(user: user, cached: true) &&
+        p.active?(user: user, cached: true)
+      }
+    else
+      projects = []
+    end
     if projects.empty?
       step 'I create a new project'
       unless @result[:success]
@@ -55,6 +58,7 @@ end
 # try to create a new project with current user
 When /^I create a new project(?: via (.*?))?$/ do |via|
   @result = BushSlicer::Project.create(by: user, name: rand_str(5, :dns), _via: (via.to_sym if via))
+  binding.pry
   if @result[:success]
     @projects << @result[:project]
     @result = @result[:project].wait_to_be_created(user)

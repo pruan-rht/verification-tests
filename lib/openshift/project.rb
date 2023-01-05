@@ -4,6 +4,7 @@ require_relative 'build'
 require_relative 'cluster_resource'
 require_relative 'pod'
 require_relative 'role_binding'
+require 'pry-byebug'
 
 module BushSlicer
   # @note represents an OpenShift environment project
@@ -95,7 +96,10 @@ module BushSlicer
       # note that search for users is only done inside the set of users
       #   currently used by scenario; we don't expect scenario to know
       #   usernames before a user is actually requested from the user_manager
-      if env.is_admin?(by) &&
+      if env.opts[:key] == 'microshift'
+        binding.pry
+        res = by.cli_exec(:create_namespace, name: name, **opts)
+      elsif env.is_admin?(by) &&
              ! env.users.by_name(opts[:admin]) &&
              ! opts.delete(:clean_up_registered)
         raise "creating project as admin without administrators may easily lead to project leaks in the test framework, avoid doing so"
@@ -105,6 +109,7 @@ module BushSlicer
         res = by.cli_exec(:new_project, project_name: name, **opts)
       end
       started_at = Time.now
+      binding.pry
       success = wait_for(60, interval: 5) {
         uid_range = by.cli_exec(:get, resource: "namespace", resource_name: name, template: '{{ index .metadata.annotations "openshift.io/sa.scc.uid-range" }}')
         !uid_range.nil? && !uid_range.empty? && uid_range.to_s !~ /no value/

@@ -94,6 +94,8 @@ module BushSlicer
     # @param user [APIAccessor]
     # @return
     private def config_setup(user:, executor:, opts: {})
+      require 'pry-byebug'
+      binding.pry
       if user.token
         ## login with existing token
         res = executor.run(:login, token: user.token, server: user.env.api_endpoint_url, _timeout: LOGIN_TIMEOUT, **opts)
@@ -287,6 +289,8 @@ module BushSlicer
     #   commands may cause race conditions.
     # @return [Hash] :config => "<workdir>/<env key>_<user name>.kubeconfig"
     private def user_opts(user)
+      require 'pry-byebug'
+      binding.pry
       user_config = "#{user.env.opts[:key]}_#{user.id}.kubeconfig"
       user_config = host.absolute_path user_config # inside workdir
       host.delete user_config
@@ -294,7 +298,7 @@ module BushSlicer
       # TODO: we may consider obtaining server CA chain and configuring it in
       #   instead of setting insecure SSL
       opts = {config: user_config, skip_tls_verify: "true"}
-      add_proxy_env_opt(user.env, opts)
+      #add_proxy_env_opt(user.env, opts)
       config_setup(user: user, executor: executor, opts: opts)
 
       # success, set opts early to allow caching token

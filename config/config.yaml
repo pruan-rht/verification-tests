@@ -114,11 +114,12 @@ environments:
     static_users_map:
       exampleSymbolicUserName: "user1:password1"
   microshift:
+    hosts_type: OCDebugAccessibleHost
+    cli: SharedLocalCliExecutor
     type: StaticEnvironment
-    admin_creds: URLKubeconfigCredentials
+    admin_creds: AutoKubeconfigCredentials #URLKubeconfigCredentials
     api_port: 6443
-    # user_manager: 'pool:'
-
+    # user_manager: auto
 
 
 optional_classes:

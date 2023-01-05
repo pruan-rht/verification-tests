@@ -130,7 +130,6 @@ module BushSlicer
     end
 
     def admin
-      binding.pry
       env.admin
     end
 
