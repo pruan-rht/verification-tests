@@ -137,7 +137,7 @@ module BushSlicer
         vpcs_total += vpcs.count
         row_data = [region, vpcs.count]
         summary_data<< row_data
-        limits_msg = over_limit?(resource_type: "vpc in region #{region}",resource_value: vpcs.count, resource_limit: vpcs_limit, percentage: 80)
+        limits_msg = over_limit?(resource_type: "vpc in region #{region}",resource_value: vpcs.count, resource_limit: vpcs_limit, percentage: 90)
         limits_msgs << limits_msg unless limits_msg.nil?
       end
       vpcs_header = ['region', 'total']
@@ -149,18 +149,18 @@ module BushSlicer
       # check s3 limits
       print("Checking s3 buckets limits...\n")
       s3_buckets = @amz.s3_list_buckets
-      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 80)
+      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 90)
       limits_msgs << s3_limits_msg unless s3_limits_msg.nil?
 
       # check IAM roles limits
       print("Checking IAM roles limits...\n")
       iam_roles = @amz.iam_roles
-      iam_roles_limits_msg = over_limit?(resource_type: "IAM Roles", resource_value: iam_roles.count, resource_limit: iam_roles_limits, percentage: 80)
+      iam_roles_limits_msg = over_limit?(resource_type: "IAM Roles", resource_value: iam_roles.count, resource_limit: iam_roles_limits, percentage: 90)
       limits_msgs << iam_roles_limits_msg unless iam_roles_limits_msg.nil?
 
       print("Checking route53 limits...\n")
       route53_zones= @amz.route53_zones
-      route53_limits_msg = over_limit?(resource_type: "Route53", resource_value: route53_zones.count, resource_limit: route53_limits, percentage: 80)
+      route53_limits_msg = over_limit?(resource_type: "Route53", resource_value: route53_zones.count, resource_limit: route53_limits, percentage: 90)
       limits_msgs << route53_limits_msg unless route53_limits_msg.nil?
       notify_limits(limits_msgs)
 
