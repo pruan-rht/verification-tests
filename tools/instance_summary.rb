@@ -400,7 +400,7 @@ module BushSlicer
       return summary
     end
 
-    def get_summary(target_region: nil, options: nil, global_region: :"AWS-CLOUD-USAGE")
+    def get_summary(target_region: nil, options: nil, account: :"AWS-CLOUD-USAGE")
       regions = amz.get_regions
       region_names =  regions.map {|r| r.region_name }
       aws_instances = {}
@@ -411,7 +411,7 @@ module BushSlicer
           raise "Unsupported region '#{target_region}'" unless region_names.include? target_region
           region.region_name = target_region
         end
-        aws = Amz_EC2.new(service_name: global_region, region: region.region_name)
+        aws = Amz_EC2.new(service_name: account, region: region.region_name)
         instances = aws.get_instances_by_status('running')
         aws_instances[region.region_name] = instances
         ##  XXX commnet out thread implmentation for now as it's flaky when when in jenkins
