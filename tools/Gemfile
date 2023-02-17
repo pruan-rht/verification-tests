@@ -6,4 +6,4 @@ gem 'text-table'
 gem 'stomp'
 gem 'jenkins_api_client'
 gem 'mongo'
-gem 'jwt', "2.2.1"
+gem 'jwt'
