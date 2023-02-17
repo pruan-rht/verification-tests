@@ -121,6 +121,36 @@ module BushSlicer
       launch_instances(image=image_id)
     end
 
+    # @return Array of IAM users
+    def iam_users
+      iam_users = []
+      client_iam.list_users.each do |resp|
+        iam_users.append(resp.users)
+      end
+      iam_users.flatten
+    end
+
+    def iam_roles
+      iam_roles = []
+      client_iam.list_roles.each do |resp|
+        iam_roles.append(resp.roles)
+      end
+      iam_roles.flatten
+    end
+
+    def route53_zones
+      route53_zones = []
+      client_r53.list_hosted_zones.each do |resp|
+        route53_zones.append(resp.hosted_zones)
+      end
+      route53_zones.flatten
+    end
+
+    def get_route53_count_by_zone_name(name: 'qe.devcluster.openshift.com.')
+      res = self.route53_zones.select {|z| z.name == name }
+      res.first.resource_record_set_count
+    end
+
     ####### s3 bucket related methods
     def s3_list_buckets
       res = s3.client.list_buckets

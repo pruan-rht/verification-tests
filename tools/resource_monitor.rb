@@ -1,7 +1,6 @@
 require 'text-table'
 require 'thread'
 require 'openshift_qe_slack'
-#require 'pry-byebug'
 
 module BushSlicer
 
@@ -50,7 +49,7 @@ module BushSlicer
 
     def initialize(svc_name: "AWS-CLOUD-USAGE")
       @amz = Amz_EC2.new(service_name: svc_name)
-      @limits = {:s3 => 300, :vpcs => 100}
+      @limits = {:s3 => 300, :vpcs => 100, :iam_roles => 1000, :route53 => 500}
       @table = Text::Table.new
     end
     ## print out summary in a text table format
@@ -65,7 +64,6 @@ module BushSlicer
     end
 
     def notify_limits(limits_msgs)
-
       limits_msgs.each do |msg|
         print(msg)
         send_to_slack(summary_text: msg)
@@ -124,14 +122,17 @@ module BushSlicer
     end
 
     # @instances <Array of unordered Instance obj>
-    def summarize_resources(resources: ['s3, vpc'])
+    def summarize_resources(resources: ['iam, s3, vpc'])
       vpcs_hash, raw_vpcs = self.get_vpcs
       vpcs_total = 0
       summary_data = []
       limits_msgs = []
-
       vpcs_limit = @limits[:vpcs]
       s3_buckets_limits = @limits[:s3]
+      iam_roles_limits = @limits[:iam_roles]
+      route53_limits = @limits[:route53]
+
+      print("Checking VPC limits...\n")
       vpcs_hash.each do |region, vpcs|
         vpcs_total += vpcs.count
         row_data = [region, vpcs.count]
@@ -145,16 +146,31 @@ module BushSlicer
       vpcs_name_date_header = ['name', 'creation_date']
       print_summary(vpcs_name_date_list, vpcs_name_date_header)
 
+      # check s3 limits
+      print("Checking s3 buckets limits...\n")
       s3_buckets = @amz.s3_list_buckets
-      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 90)
+      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 80)
       limits_msgs << s3_limits_msg unless s3_limits_msg.nil?
+
+      # check IAM roles limits
+      print("Checking IAM roles limits...\n")
+      iam_roles = @amz.iam_roles
+      iam_roles_limits_msg = over_limit?(resource_type: "IAM Roles", resource_value: iam_roles.count, resource_limit: iam_roles_limits, percentage: 80)
+      limits_msgs << iam_roles_limits_msg unless iam_roles_limits_msg.nil?
+
+      print("Checking route53 limits...\n")
+      route53_zones= @amz.route53_zones
+      route53_limits_msg = over_limit?(resource_type: "Route53", resource_value: route53_zones.count, resource_limit: route53_limits, percentage: 80)
+      limits_msgs << route53_limits_msg unless route53_limits_msg.nil?
       notify_limits(limits_msgs)
+
+
       print("VPCS total: #{vpcs_total}\n")
       print("S3 bucket total: #{s3_buckets.count}\n")
+      print("IAM roles total: #{iam_roles.count}\n")
+      print("Route53 Zones total: #{route53_zones.count}\n")
 
     end
-
-
   end
 
   class GceRources < ResourceMonitor

@@ -25,6 +25,8 @@ require 'instance_summary'
 require 'jenkins'
 require 'jenkins_mongo'
 
+require 'pry-byebug'
+
 module BushSlicer
   class CloudUsage
     include Commander::Methods
@@ -54,18 +56,27 @@ module BushSlicer
         c.syntax = "#{File.basename __FILE__} -r <aws_region_name> [--all]"
         c.description = 'display summary of running instances'
         c.option("-r", "--region region_name", "report on this region only")
+        c.option("-a", "--account AWS_ACCOUNT_ALIAS", "default to AWS-CLOUD-USAGE")
         c.option("-u", "--uptime cluter uptime limit", "report for clusters having uptime over this limit")
         c.action do |args, options|
-          ps = AwsSummary.new(svc_name: :"AWS-CLOUD-USAGE", jenkins: @jenkins)
+
+          if options.account
+            account_alias = options.account.to_sym
+          else
+            account_alias = :"AWS-CLOUD-USAGE"
+          end
+          print("Queyring account #{account_alias}...")
+          ps = AwsSummary.new(svc_name: account_alias, jenkins: @jenkins)
+          #ps = AwsSummary.new(svc_name: :"AWS-CLOUD-USAGE", jenkins: @jenkins)
           options.config = conf
           say 'Getting summary...'
-          ps.get_summary(target_region: options.region, options: options)
+          ps.get_summary(target_region: options.region, options: options, account: account_alias)
           # add support for AWS-CHINA regions
           global_region = :"AWS-CI-CHINA"
           ps = AwsSummary.new(svc_name: global_region ,jenkins: @jenkins)
           options.config = conf
           say 'Getting summary...'
-          ps.get_summary(target_region: options.region, options: options, global_region: global_region)
+          ps.get_summary(target_region: options.region, options: options, account: global_region)
 
         end
       end
