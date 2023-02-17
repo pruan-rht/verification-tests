@@ -56,7 +56,7 @@ module BushSlicer
         c.syntax = "#{File.basename __FILE__} -r <aws_region_name> [--all]"
         c.description = 'display summary of running instances'
         c.option("-r", "--region region_name", "report on this region only")
-        c.option("-a", "--account AWS_ACCOUNT_ALIAS", "default to AWS-CLOUD-USAGE")
+        c.option("-a", "--account AWS_ACCOUNT_ALIAS", "default to AWS-CLOUD-USAGE (use AWS-LRC for long running account)")
         c.option("-u", "--uptime cluter uptime limit", "report for clusters having uptime over this limit")
         c.action do |args, options|
 

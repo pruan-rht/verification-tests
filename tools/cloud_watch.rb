@@ -43,7 +43,7 @@ module BushSlicer
     def run
       program :name, 'CloudWatch'
       program :version, '0.0.1'
-      program :description, 'Helper utility to alert the team when'
+      program :description, 'Helper utility to alert the team when resource limits have exceeded 90% threshold'
       global_option('--no_slack') do |_f|
         no_slack = true
       end
