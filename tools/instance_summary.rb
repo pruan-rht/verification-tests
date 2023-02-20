@@ -2,7 +2,6 @@ require 'text-table'
 require 'thread'
 require 'openshift_qe_slack'
 
-
 module BushSlicer
 
   # base class to display a summary of the current running instances.
@@ -146,6 +145,11 @@ module BushSlicer
         # ignore it
         elsif self.class == BushSlicer::VSphereSummary
           filtered_list = res_list.map {|r| r[4] if r[0] !='Workloads' }.compact
+          users = filtered_list
+        # for AWS-LRC account
+        elsif self.class == BushSlicer::AwsSummary
+          aws_lrc_account_ignore_list = ["mffiedler-prese", "netobserv-grafa", "qili-jump"]
+          filtered_list = res_list.select {|r| aws_lrc_account_ignore_list.include?(r) }
           users = filtered_list
         end
         slack_client = BushSlicer::CoreosSlack.new
