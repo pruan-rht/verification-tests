@@ -49,7 +49,7 @@ module BushSlicer
 
     def initialize(svc_name: "AWS-CLOUD-USAGE")
       @amz = Amz_EC2.new(service_name: svc_name)
-      @limits = {:s3 => 300, :vpcs => 100, :iam_roles => 1000, :route53 => 500}
+      @limits = {:s3 => 500, :vpcs => 100, :iam_roles => 1000, :route53 => 500}
       @table = Text::Table.new
     end
     ## print out summary in a text table format
@@ -149,7 +149,7 @@ module BushSlicer
       # check s3 limits
       print("Checking s3 buckets limits...\n")
       s3_buckets = @amz.s3_list_buckets
-      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 100)
+      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 96)
       limits_msgs << s3_limits_msg unless s3_limits_msg.nil?
 
       # check IAM roles limits
