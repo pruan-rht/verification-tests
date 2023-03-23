@@ -49,7 +49,7 @@ module BushSlicer
 
     def initialize(svc_name: "AWS-CLOUD-USAGE")
       @amz = Amz_EC2.new(service_name: svc_name)
-      @limits = {:s3 => 500, :vpcs => 100, :iam_roles => 1000, :route53 => 500}
+      @limits = {:s3 => 500, :vpcs => 100, :iam_roles => 5000, :route53 => 500}
       @table = Text::Table.new
     end
     ## print out summary in a text table format
@@ -137,7 +137,7 @@ module BushSlicer
         vpcs_total += vpcs.count
         row_data = [region, vpcs.count]
         summary_data<< row_data
-        limits_msg = over_limit?(resource_type: "vpc in region #{region}",resource_value: vpcs.count, resource_limit: vpcs_limit, percentage: 90)
+        limits_msg = over_limit?(resource_type: "vpc in region #{region}",resource_value: vpcs.count, resource_limit: vpcs_limit, percentage: 95)
         limits_msgs << limits_msg unless limits_msg.nil?
       end
       vpcs_header = ['region', 'total']
@@ -149,18 +149,18 @@ module BushSlicer
       # check s3 limits
       print("Checking s3 buckets limits...\n")
       s3_buckets = @amz.s3_list_buckets
-      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 96)
+      s3_limits_msg = over_limit?(resource_type: "s3 buckets", resource_value: s3_buckets.count, resource_limit: s3_buckets_limits, percentage: 98)
       limits_msgs << s3_limits_msg unless s3_limits_msg.nil?
 
       # check IAM roles limits
       print("Checking IAM roles limits...\n")
       iam_roles = @amz.iam_roles
-      iam_roles_limits_msg = over_limit?(resource_type: "IAM Roles", resource_value: iam_roles.count, resource_limit: iam_roles_limits, percentage: 90)
+      iam_roles_limits_msg = over_limit?(resource_type: "IAM Roles", resource_value: iam_roles.count, resource_limit: iam_roles_limits, percentage: 98)
       limits_msgs << iam_roles_limits_msg unless iam_roles_limits_msg.nil?
 
       print("Checking route53 limits...\n")
       route53_zones= @amz.route53_zones
-      route53_limits_msg = over_limit?(resource_type: "Route53", resource_value: route53_zones.count, resource_limit: route53_limits, percentage: 90)
+      route53_limits_msg = over_limit?(resource_type: "Route53", resource_value: route53_zones.count, resource_limit: route53_limits, percentage: 95)
       limits_msgs << route53_limits_msg unless route53_limits_msg.nil?
       notify_limits(limits_msgs)
 
