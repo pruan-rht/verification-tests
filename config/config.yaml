@@ -113,7 +113,18 @@ environments:
     type: OCMEnvironment
     static_users_map:
       exampleSymbolicUserName: "user1:password1"
-
+  rosa_hypershift:
+    # hosts: use OPENSHIFT_ENV_ORIGIN_HOSTS=host:role1:...,host2:role1:...
+    hosts_type: OCDebugAccessibleHost
+    # this is the user for remote access to the OpenShift nodes
+    user: root
+    type: StaticEnvironment
+    user_manager: auto
+    # set users in OPENSHIFT_ENV_ORIGIN_USER_MANAGER_USERS=user:password,...
+    # user_manager_users: joe:redhat,alice:redhat
+    cli: SharedLocalCliExecutor
+    admin_creds: MasterOsAdminCredentials
+    api_port: 443
 optional_classes:
   tcms_tc_manager:
     include_path: tcms/tcms_manager
