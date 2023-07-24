@@ -39,7 +39,7 @@ module BushSlicer
     # slack channel URL is defined in private/config/config.yaml
     ## TODO: research doing it via ruby-slack-client instead
     def send_to_slack(summary_text: text, options: nil)
-      @slack ||= BushSlicer::CoreosSlack.new(channel: '#team-qe')
+      @slack ||= BushSlicer::CoreosSlack.new(channel: '#team-openshift-qe')
       @slack.post_msg(msg: summary_text, as_blocks: true)
     end
   end
