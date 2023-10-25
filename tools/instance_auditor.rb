@@ -23,6 +23,10 @@ module BushSlicer
     # the key we are interested in is "Name"
     # @return String
     def get_instance_name_from_tags(tags)
+      if tags.nil?
+        print("Tags are nil!\n")
+        return nil
+      end
       res = tags.select {|t| t[:key] == 'Name'}
       if res.count == 0
         print("No name found, returning nil...")
@@ -316,6 +320,7 @@ module BushSlicer
       # hard-coded pricing lookup table name: => price/hr
       @amz_prices = {
         "i3.large" => 0.15,
+        "i3.16xlarge" => 4.992,
         "m5.xlarge" => 0.192,
         "m5.2xlarge" => 0.384,
         "m5.4xlarge" => 0.768,
@@ -355,6 +360,8 @@ module BushSlicer
         "m5a.large" => 0.086,
         "m6i.2xlarge" => 0.384,
         "m6g.4xlarge" => 0.6160,
+        "m6idn.xlarge"  => 0.3182,
+        "t3.medium" => 0.0418,
       }
       super
     end
