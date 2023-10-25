@@ -455,7 +455,7 @@ module BushSlicer
           data[:region] = region
           data[:save_time] = save_time
           # 1 means it's a spot instance, 0 mean not
-          data[:is_spot] = res.dig('instance_lifecycle') ? 1 : 0
+          data[:is_spot] = res.dig(:instance_lifecycle) ? 1 : 0
           data[:uptime] = @amz.instance_uptime(inst)
           new_data.append(data)
         end
