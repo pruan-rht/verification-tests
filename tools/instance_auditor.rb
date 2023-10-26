@@ -367,6 +367,8 @@ module BushSlicer
         "m6gd.2xlarge" => 0.3616,
         "m6i.4xlarge" => 0.768,
         "m6g.2xlarge" => 0.308,
+        "g4dn.2xlarge" => 0.752,
+        "c5n.9xlarge" => 1.944,
       }
       super
     end
