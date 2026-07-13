@@ -25,7 +25,7 @@ module BushSlicer
     end
 
     def load_file(config_file)
-      config = YAML.unsafe_load_file(config_file)
+      config = YAML.load_file(config_file)
     end
 
     ## return full raw configuration
